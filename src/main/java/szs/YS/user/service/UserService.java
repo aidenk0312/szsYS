@@ -1,19 +1,23 @@
 package szs.YS.user.service;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import szs.YS.user.entity.User;
 import szs.YS.user.repository.UserRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BCryptPasswordEncoder encoder;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
+        this.encoder = new BCryptPasswordEncoder();
     }
 
     public User registerUser(String userId, String password, String name, String regNo) {
@@ -29,7 +33,20 @@ public class UserService {
             throw new IllegalArgumentException("등록이 허용되지 않은 사용자입니다.");
         }
 
-        User user = new User(userId, password, name, regNo);
+        String encodedPassword = encoder.encode(password);
+        String encodedRegNo = encoder.encode(regNo);
+
+        User user = new User(userId, encodedPassword, name, encodedRegNo);
         return userRepository.save(user);
+    }
+
+    public Optional<User> authenticateUser(String userId, String rawPassword) {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        return userRepository.findByUserId(userId)
+                .filter(user -> encoder.matches(rawPassword, user.getPassword()));
+    }
+
+    public Optional<User> findUserById(String userId) {
+        return userRepository.findByUserId(userId);
     }
 }
