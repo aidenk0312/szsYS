@@ -15,11 +15,17 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String userId;
+    @Column(name = "password", nullable = false)
     private String password;
+
+    private String userId;
     private String name;
     private String regNo;
 
     public User(String userId, String password, String name, String regNo) {
+        this.userId = userId;
+        this.password = password;
+        this.name = name;
+        this.regNo = regNo;
     }
 }

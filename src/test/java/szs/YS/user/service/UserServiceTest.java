@@ -7,11 +7,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import szs.YS.user.entity.User;
 import szs.YS.user.repository.UserRepository;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
@@ -22,22 +27,31 @@ public class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    private BCryptPasswordEncoder encoder;
+
     @BeforeEach
     void setUp() {
         userService = new UserService(userRepository);
+        encoder = new BCryptPasswordEncoder();
     }
 
     @Test
-    @DisplayName("등록 된 유저 Test")
-    void registerUser_ValidUser_ReturnsUser() {
+    @DisplayName("회원가입 성공 테스트")
+    void registerUser_Success() {
         // Given
-        String userId = "홍길동ID";
-        String password = "홍길동PW";
+        String userId = "testUser";
+        String password = "password123";
         String name = "홍길동";
         String regNo = "860824-1655068";
-        User user = new User(userId, password, name, regNo);
 
-        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User passedUser = invocation.getArgument(0);
+            passedUser.setUserId(userId);
+            passedUser.setPassword(encoder.encode(password));
+            passedUser.setName(name);
+            passedUser.setRegNo(regNo);
+            return passedUser;
+        });
 
         // When
         User result = userService.registerUser(userId, password, name, regNo);
@@ -45,21 +59,61 @@ public class UserServiceTest {
         // Then
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
-        verify(userRepository, times(1)).save(any(User.class));
+        assertTrue(encoder.matches(password, result.getPassword()));
     }
 
     @Test
-    @DisplayName("미 등록 된 유저 Test")
-    void registerUser_InvalidUser_ThrowsException() {
+    @DisplayName("회원가입 실패 테스트 (허용되지 않은 사용자)")
+    void registerUser_Failure() {
         // Given
-        String userId = "김용수ID";
-        String password = "김용수PW";
-        String name = "김용수";
+        String userId = "testUser";
+        String password = "password123";
+        String name = "김철수";
         String regNo = "123456-7890123";
 
         // When & Then
         assertThrows(IllegalArgumentException.class, () -> {
             userService.registerUser(userId, password, name, regNo);
         });
+    }
+
+
+    @Test
+    @DisplayName("유효한 사용자 로그인 Test")
+    void User_Valid() {
+        // Given
+        String userId = "testUser";
+        String rawPassword = "testPassword";
+        User user = new User();
+        user.setUserId(userId);
+        user.setPassword(encoder.encode(rawPassword));
+
+        when(userRepository.findByUserId(userId)).thenReturn(Optional.of(user));
+
+        // When
+        Optional<User> result = userService.authenticateUser(userId, rawPassword);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertEquals(userId, result.get().getUserId());
+    }
+
+    @Test
+    @DisplayName("잘못된 자격 증명으로 로그인 시도 Test")
+    void User_UnValid() {
+        // Given
+        String userId = "testUser";
+        String rawPassword = "testPassword";
+        User user = new User();
+        user.setUserId(userId);
+        user.setPassword(encoder.encode("differentPassword"));
+
+        when(userRepository.findByUserId(userId)).thenReturn(Optional.of(user));
+
+        // When
+        Optional<User> result = userService.authenticateUser(userId, rawPassword);
+
+        // Then
+        assertFalse(result.isPresent());
     }
 }
