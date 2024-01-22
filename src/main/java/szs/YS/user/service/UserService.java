@@ -4,6 +4,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import szs.YS.user.entity.User;
 import szs.YS.user.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +47,7 @@ public class UserService {
                 .filter(user -> encoder.matches(rawPassword, user.getPassword()));
     }
 
-    public Optional<User> findUserById(String userId) {
+    public Optional<User> findByUserId(String userId) {
         return userRepository.findByUserId(userId);
     }
 }
