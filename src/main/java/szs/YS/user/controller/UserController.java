@@ -9,12 +9,17 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import szs.YS.user.entity.ScrapData;
 import szs.YS.user.entity.User;
 import szs.YS.user.model.LoginDTO;
+import szs.YS.user.model.ScrapRequest;
 import szs.YS.user.model.UserDTO;
+import szs.YS.user.repository.ScrapDataRepository;
+import szs.YS.user.util.SslUtil;
 import szs.YS.user.service.UserService;
 import szs.YS.user.service.JwtTokenService;
 
@@ -27,6 +32,9 @@ public class UserController {
 
     private final UserService userService;
     private final JwtTokenService jwtTokenService;
+
+    @Autowired
+    private ScrapDataRepository scrapDataRepository;
 
     public UserController(UserService userService, JwtTokenService jwtTokenService) {
         this.userService = userService;
@@ -84,6 +92,42 @@ public class UserController {
         } catch (Exception e) {
             log.error("Internal server error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("토큰 검증 중 오류가 발생했습니다.");
+        }
+    }
+
+    @PostMapping("/scrap")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "Authorization", required = true, dataType = "string", paramType = "header")
+    })
+    public ResponseEntity<?> scrapUserData(@RequestBody ScrapRequest requestModel, HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token == null || !token.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 토큰이 필요합니다.");
+        }
+
+        String userId = jwtTokenService.extractUserId(token.substring(7));
+        Optional<User> user = userService.findByUserId(userId);
+        if (user.isPresent()) {
+            User currentUser = user.get();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<ScrapRequest> requestEntity = new HttpEntity<>(requestModel, headers);
+
+            RestTemplate restTemplate = SslUtil.getRestTemplateWithoutSslVerification();
+            ResponseEntity<String> response = restTemplate.postForEntity("https://codetest.3o3.co.kr/v2/scrap", requestEntity, String.class);
+
+            String scrapResult = response.getBody();
+
+            ScrapData scrapData = new ScrapData();
+            scrapData.setUserId(currentUser.getUserId());
+            scrapData.setScrapResult(scrapResult);
+            scrapDataRepository.save(scrapData);
+
+            return ResponseEntity.ok(scrapResult);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
         }
     }
 }
