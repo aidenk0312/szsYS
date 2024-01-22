@@ -34,4 +34,13 @@
   3) 해결방법
     - Bearer Token 형식 지정: .scheme(BEARER_TOKEN_PREFIX)를 통해 토큰의 스키마로 "Bearer"를 명확하게 지정 하여 Swagger UI에서 "Bearer" 토큰을 사용할 수 있게함
     - Security Requirement 추가: SecurityRequirement 객체를 사용하여 정의된 Security Scheme을 OpenAPI 구성에 추가하여 API 요청 시 인증 정보가 필요함을 나타내며, Swagger UI에서 모든 API 엔드포인트에 대해 해당 Security Scheme 사용 하도록 함
+ 
+### 4. 인증 된 회원 Scrap 기능
+- 구현여부: 완료
+- 구현방법: JWT Token을 통한 인증 후 userId, password로 외부 데이터 scrap
+- 문제해결
+  1) 실뢰할 수 없는 코드로 오류 발생: SslUtil class에 getRestTemplateWithoutSslVerification 메서드를 통해 우회 설정
+  2) Read timed out 오류 발생: SslUtil class에 1분 time out 설정
+  3) DB 저장 할 때 길이, 데이터 종류  문제로 오류: ScrapData class에 길이(65535), 데이터 종류 정의 “Text”로 지정
+
 
