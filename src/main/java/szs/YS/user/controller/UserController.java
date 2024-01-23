@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import szs.YS.user.model.LoginDTO;
 import szs.YS.user.model.ScrapRequest;
 import szs.YS.user.model.UserDTO;
 import szs.YS.user.repository.ScrapDataRepository;
+import szs.YS.user.service.TaxCalculator;
 import szs.YS.user.util.SslUtil;
 import szs.YS.user.service.UserService;
 import szs.YS.user.service.JwtTokenService;
@@ -65,9 +67,6 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    @Operation(parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "Authorization", description = "JWT Token", required = false)
-            })
     public ResponseEntity<?> getMyInfo(HttpServletRequest request) {
 
         String token = request.getHeader("Authorization");
@@ -128,6 +127,43 @@ public class UserController {
             return ResponseEntity.ok(scrapResult);
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
+        }
+    }
+
+    @GetMapping("/refund")
+    public ResponseEntity<?> calculateRefund(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token == null || !token.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 토큰이 필요합니다.");
+        }
+
+        try {
+            String userId = jwtTokenService.extractUserId(token.substring(7));
+            Optional<User> user = userService.findByUserId(userId);
+            if (!user.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
+            }
+
+            Optional<ScrapData> scrapDataOpt = scrapDataRepository.findByUserId(userId);
+            if (!scrapDataOpt.isPresent()) {
+                return ResponseEntity.badRequest().body("스크랩 데이터가 존재하지 않습니다.");
+            }
+
+            ScrapData scrapData = scrapDataOpt.get();
+            JSONObject taxResult = TaxCalculator.calculateTax(scrapData.getScrapResult());
+
+            JSONObject response = new JSONObject();
+            response.put("이름", user.get().getName());
+            response.put("결정세액", taxResult.get("결정세액"));
+            response.put("퇴직연금세액공제", taxResult.get("퇴직연금세액공제"));
+
+            return ResponseEntity.ok().body(response.toString());
+
+        } catch (JwtException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("토큰이 유효하지 않습니다.");
+        } catch (Exception e) {
+            log.error("Internal server error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("내부 서버 오류");
         }
     }
 }
