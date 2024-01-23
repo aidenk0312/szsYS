@@ -3,7 +3,7 @@
 ### Swagger: http://localhost:8080/swagger-ui/index.html
 
 ## 요구 사항
-### 1. 회원가입 (특정 회원만 가입, 비밀번호/주민번호 암호화)
+### 1. 회원가입 (특정 회원만 가입, 비밀번호/주민번호 암호화, ID 중복 체크)
 - 구현여부: 부분 완료 (비밀번호/주민번호 암호화 추후 진행)
 - 구현방법
   1) "WebSecurityConfigurerAdapter" 기능이 Spring 3.X Ver. 부터 사용 불가능
