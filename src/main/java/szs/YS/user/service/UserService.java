@@ -23,6 +23,11 @@ public class UserService {
 
     public User registerUser(String userId, String password, String name, String regNo) {
         // 사용자 목록
+
+        if (userRepository.findByUserId(userId).isPresent()) {
+            throw new IllegalArgumentException("이미 존재하는 사용자 ID 입니다.");
+        }
+
         Map<String, String> allowedUsers = new HashMap<>();
         allowedUsers.put("홍길동", "860824-1655068");
         allowedUsers.put("김돌리", "921108-1582816");

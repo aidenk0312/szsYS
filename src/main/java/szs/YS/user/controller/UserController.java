@@ -67,6 +67,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
+    @ApiOperation(value = "정보 조회", notes = "사용자 정보조회")
     public ResponseEntity<?> getMyInfo(HttpServletRequest request) {
 
         String token = request.getHeader("Authorization");
@@ -95,6 +96,7 @@ public class UserController {
     }
 
     @PostMapping("/scrap")
+    @ApiOperation(value = "스크랩", notes = "사용자 정보 스크랩")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "Authorization", required = true, dataType = "string", paramType = "header")
     })
@@ -131,6 +133,7 @@ public class UserController {
     }
 
     @GetMapping("/refund")
+    @ApiOperation(value = "계산식", notes = "사용자 정보 스크랩 후 계산식")
     public ResponseEntity<?> calculateRefund(HttpServletRequest request) {
         String token = request.getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {
