@@ -43,4 +43,9 @@
   2) Read timed out 오류 발생: SslUtil class에 1분 time out 설정
   3) DB 저장 할 때 길이, 데이터 종류  문제로 오류: ScrapData class에 길이(65535), 데이터 종류 정의 “Text”로 지정
 
+### 5. 유저의 스크랩 정보를 바탕으로 유저의 결정세액, 퇴직연금세액공제금액 계산
+- 구현여부: 완료
+- 구현방법
+  1) TaxCalculator class를 사용하여 유저의 스크랩 정보에 기반한 세액 계산 로직 구현
+  2) 계산된 결과값은 NumberFormat 메소드를 사용하여 가독성 좋게 포맷팅 (소수점 미표기 설정)
 
